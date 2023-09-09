@@ -1,0 +1,69 @@
+---
+title: "FML 1-811292102"
+output: html_document
+date: "2023-09-09"
+---
+#datasource:https://www.kaggle.com/datasets/abdurrahman22224/smartphone-new-data
+
+
+```{r}
+my_file <-read.csv("C:/Users/DELL/Downloads/smartphone_cleaned.csv")
+
+
+my_file
+```
+#descriptive statistics for numeric variable
+
+```{r}
+summary(my_file)
+
+mean(my_file$price)
+
+median(my_file$price)
+
+sd(my_file$price)
+
+var(my_file$price)
+
+min(my_file$price)
+
+max(my_file$price)
+
+
+str(my_file$price)
+
+```
+#descriptive statistics for categorical variables
+
+```{r}
+table(my_file$os)
+
+table(my_file$has_nfc)
+
+
+str(my_file$os)
+```
+#transforming variables
+
+```{r}
+log(my_file$price)
+
+log(my_file$rating)
+
+s<-my_file$price-my_file$rating-max(my_file$price)/min(my_file$price)
+
+s
+
+```
+#plotting variable
+
+```{r}
+hist(my_file$price,main = "HISTOGRAM OF price")
+```
+#scatterplot of 2 variables
+
+```{r}
+plot(my_file$price,my_file$rating,main ="scatterplot")
+```
+
+
