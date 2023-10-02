@@ -1,0 +1,255 @@
+---
+title: "FML assignment 2"
+author: "Saride Lakshmi Priya"
+date: "2023-10-01"
+output:
+pdf_document: default
+html_document: default
+word_document: default
+---
+
+## Data import 
+#First load the required libraries
+```{r}
+library(class)
+
+library(caret)
+```
+
+
+```{r}
+library(e1071)
+```
+
+# Read the file data
+```{r}
+data<-read.csv("C:/Users/DELL/Downloads/UniversalBank.csv")
+dim(data)
+
+```
+```{r}
+head(data)
+```
+
+```{r}
+tail(data)
+```
+```{r}
+t(t(names(data))) 
+```
+# drop ID & ZIP
+```{r}
+new_df <-data[,-c(1,5)]
+dim(new_df)
+```
+#Education needs to be converted to factor
+
+```{r}
+new_df$Education <- as.factor(new_df$Education)
+```
+
+# creating education to dummy variables
+```{r}
+dummy_var <- dummyVars(~.,data=new_df)
+predict_data <- as.data.frame(predict(dummy_var,new_df))
+
+```
+
+#When we need to run the code again, we partition the data into training (60%) and validation (40%) sets and set the seed.
+
+```{r}
+set.seed(1)
+train.data <- sample(row.names(predict_data), 0.6*dim(predict_data)[1])
+valid.data <- setdiff(row.names(predict_data),train.data)
+train_data <- predict_data[train.data,]
+valid_data <- predict_data[valid.data,]
+t(t(names(train_data)))
+
+```
+```{r}
+summary(train_data)
+```
+
+```{r}
+cat("The size of the training dataset is:",nrow(train_data))
+
+```
+
+```{r}
+summary(valid_data)
+
+```
+
+```{r}
+cat("The size of the validation dataset is:",nrow(valid_data))
+
+```
+Normalizing of the data
+
+```{r}
+train.norm <- train_data[,-10]
+valid.norm <- valid_data[,-10]
+norm <- preProcess(train_data[,-10],method=c("center","scale"))
+train.norm <- predict(norm,train_data[,-10])
+valid.norm <- predict(norm,valid_data[,-10])
+```
+
+Questions
+
+Consider the following customer:
+
+1. Age = 40, Experience = 10, Income = 84, Family = 2, CCAvg = 2, Education_1 = 0, Education_2 = 1, Education_3 = 0, Mortgage = 0, Securities
+Account = 0, CD Account = 0, Online = 1, and Credit Card = 1. Perform
+a k-NN classification with all predictors except ID and ZIP code using k = 1.
+Remember to transform categorical predictors with more than two categories
+into dummy variables first. Specify the success class as 1 (loan acceptance), and
+use the default cutoff value of 0.5. How would this customer be classified?
+
+Creating new customer data
+
+```{r}
+new.cust <- data.frame(
+Age = 40,
+Experience = 10,
+Income = 84,
+Family = 2,
+CCAvg = 2,
+Education.1 = 0,
+Education.2 = 1,
+Education.3 = 0,
+Mortgage = 0,
+Securities.Account = 0,
+CD.Account = 0,
+Online = 1,
+CreditCard = 1
+)
+# Normalize the new customer dataset
+cust.norm <- predict(norm, new.cust)
+```
+
+let us predict using KNN
+
+```{r}
+prediction <- class::knn(train = train.norm,
+test = cust.norm,
+cl = train_data$Personal.Loan, k = 1)
+prediction
+```
+2.What is a choice of k that balances between overfitting and ignoring the predictor information?
+
+```{r}
+# Calculate the accuracy for each value of k
+# Set the range of k values to consider
+accuracy <- data.frame(k = seq(1, 15, 1), overallaccuracy = rep(0, 15))
+for(i in 1:15) {
+knn <- class::knn(train = train.norm,
+test = valid.norm,
+cl = train_data$Personal.Loan, k = i)
+accuracy[i, 2] <- confusionMatrix(knn,
+as.factor(valid_data$Personal.Loan),positive = "1")$overall[1]
+}
+which(accuracy[,2] == max(accuracy[,2]))
+
+```
+```{r}
+accuracy
+```
+
+```{r}
+plot(accuracy$k,accuracy$overallaccuracy)
+```
+3. Show the confusion matrix for the validation data that results from using the best k.
+
+
+```{r}
+prediction1 <- class::knn(train = train.norm,
+test = valid.norm,
+cl = train_data$Personal.Loan, k=3)
+confusionMatrix(prediction1,as.factor(valid_data$Personal.Loan))
+
+```
+4. Consider the following customer: Age = 40, Experience = 10, Income =
+84,Family = 2, CCAvg = 2, Education_1 = 0, Education_2 = 1, Education_3
+= 0,Mortgage = 0, Securities Account = 0, CD Account = 0, Online = 1 and
+CreditCard = 1. Classify the customer using the best k.
+
+now building the second new customer dataset
+
+```{r}
+customer2.df <- data.frame(
+Age = 40,
+Experience = 10,
+Income = 84,
+Family = 2,
+CCAvg = 2,
+Education.1 = 0,
+Education.2 = 1,
+Education.3 = 0,
+Mortgage = 0,
+Securities.Account = 0,
+CD.Account = 0,
+Online = 1,
+CreditCard = 1)
+#Normalizing the 2nd customer dataset
+cust_norm2 <- predict(norm , customer2.df)
+
+```
+
+Question-5: Repeating the process by partitioning the data into three parts -
+50%, 30%, 20%,Apply the k-NN method with the k chosen above. Compare the
+confusion matrix of the test set with that of the training and validation sets.
+Comment on the differences and their reason.
+
+```{r}
+set.seed(500)
+Train_Index <- sample(row.names(predict_data), .5*dim(predict_data)[1])#create train index
+```
+
+```{r}
+#create validation index
+Val_Index <- sample(setdiff(row.names(predict_data),Train_Index),.3*dim(predict_data)[1])
+Test_Index =setdiff(row.names(predict_data),union(Train_Index,Val_Index))#create test index
+train.df <- predict_data[Train_Index,]
+cat("The size of the new training dataset is:", nrow(train.df))
+## The size of the new training dataset is: 2500
+valid.df <- predict_data[Val_Index, ]
+cat("The size of the new validation dataset is:", nrow(valid.df))
+## The size of the new validation dataset is: 1500
+test.df <- predict_data[Test_Index, ]
+cat("The size of the new test dataset is:", nrow(test.df))
+```
+ 
+ Normalizing the data
+ 
+```{r}
+norm.values <- preProcess(train.df[, -10], method=c("center", "scale"))
+train.df.norm <- predict(norm.values, train.df[, -10])
+valid.df.norm <- predict(norm.values, valid.df[, -10])
+test.df.norm <- predict(norm.values, test.df[,-10])
+
+```
+
+Performing kNN and creating confusion matrix on training, testing, validation
+data
+
+```{r}
+prediction2 <- class::knn(train = train.df.norm,
+test = test.df.norm,
+cl = train.df$Personal.Loan, k=3)
+confusionMatrix(prediction2,as.factor(test.df$Personal.Loan))
+```
+
+```{r}
+prediction3 <- class::knn(train = train.df.norm,
+test = valid.df.norm,
+cl = train.df$Personal.Loan, k=3)
+confusionMatrix(prediction3,as.factor(valid.df$Personal.Loan))
+```
+```{r}
+prediction4 <- class::knn(train = train.df.norm,
+test = train.df.norm,
+cl = train.df$Personal.Loan, k=3)
+confusionMatrix(prediction4,as.factor(train.df$Personal.Loan))
+
+```
+
